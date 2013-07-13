@@ -7,7 +7,7 @@ eases searching through deeply nested source from the commandline
 requires filenames and line numbers emitted by grep; works from stdin->stdout
 
 useage:
-grep -rn something_interesting . --include <desired source> |unfold
+grep -rn foo . --include <desired source> |unfold
 
 output of grep:-
 somefile.cpp:75:             void foo();
