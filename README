@@ -1,7 +1,7 @@
 unfold
 
 Display enclosing brace context of grep search results for c-like languages
-e.g. to display enclosing classes, traits, modules.. for search results
+e.g. to display enclosing classes, traits.. for search results
 eases searching through deeply nested source from the commandline
 
 requires filenames and line numbers emitted by grep; works from stdin->stdout
