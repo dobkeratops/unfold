@@ -1,0 +1,24 @@
+unfold
+
+Display enclosing brace context of grep search results for c-like languages
+e.g. to display enclosing classes, traits, modules.. for search results
+eases searching through deeply nested source from the commandline
+
+requires filenames and line numbers emitted by grep; works from stdin->stdout
+
+useage:
+grep -rn something_interesting . --include <desired source> |unfold
+
+output of grep:-
+somefile.cpp:75:             void foo();
+another.rs:130:        fn foo();
+
+output of unfold:-
+somefile.cpp:60-     namespace Yada
+somefile.cpp:61-     {
+somefile.cpp:68-         class Foo {
+somefile.cpp:75:             void foo();
+another.rs:38-     mod apple {
+another.rs:68-         trait Banana {
+another.rs:130:            fn foo();
+

@@ -20,6 +20,7 @@ const char* help=
 "e.g. to find enclosing classes, traits, etc..\n\n"
 "useage:-\n\n"
 "grep -rn something_interesting . --include <desired source> |unfold\n"
+"\n"
 "requires filenames and line numbers emitted by grep\n"
 "\n"
 "output of grep\n"
