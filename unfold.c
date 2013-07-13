@@ -13,6 +13,16 @@
 
 #define MAX_DEPTH 256
 
+enum Opts 
+{
+	OPT_CLICKABLE			=	0x0001,
+	OPT_CLOSE_BRACES		=	0x0002,
+	OPT_SINGLE_LINE	=	0x0004,
+	OPT_SHOW_FILENAME		=	0x0008
+};
+
+int	gOptions=OPT_SHOW_FILENAME;
+
 const char* help=
 "unfold\n"
 "\n"
@@ -34,7 +44,20 @@ const char* help=
 "somefile.cpp:75:             void foo();\n"
 "another.rs:38-     mod apple {\n"
 "another.rs:68-         trait Banana {\n"
-"another.rs:130:            fn foo();\n";
+"another.rs:130:            fn foo();\n"
+"\n"
+"Options:-\n"
+"-B/-b\tdo/dont emit clickable links for the brace context(default,no)\n"
+"-N/-n\tdo/dont emit filenames(default-yes)\n"
+"-S/-s\tdo/dont place all context information on the same line (for further grep?)\n"
+"\n"
+"eg \n"
+"grep -rn \"fn\\s*baz\" . --include *.c | unfold -cS\n"
+"./test.rs:4:	mod foo {	trait bar {		fn baz {  ....yada ...}\n"
+"./test.rs:16:	mod foo {	impl bar for Yada 	{		fn baz}\n"
+
+
+"\n";
 
 
 
@@ -285,7 +308,14 @@ void emit_stuff_before_brace(FILE* dst, const char* filename, int currLine, char
 
 	for(; currLine<=lastLine; currLine++) {
 		int visIndex=visLineIndex(currLine);
-		fprintf(dst,"%s-%d-\t%s\n",filename,visLineIndex(currLine),lines[currLine]);
+		char sep = (gOptions & OPT_CLICKABLE)?':':'-';
+		if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE)) {
+			fprintf(dst,"%s%c%d%c\t",filename,sep,visLineIndex(currLine),sep);
+		}
+		fprintf(dst,"%s",lines[currLine]);
+		if (!(gOptions & OPT_SINGLE_LINE)) {
+			fprintf(dst,"\n",lines[currLine]);
+		}
 	}
 }
 
@@ -303,21 +333,39 @@ int emit_parent_lines(FILE* dst, char**lines, int* lineParents,int currLine,int 
 		//fprintf(dst,"%s-%d-%s\n",filename,visLineIndex(currLine),lines[currLine]);
 		*lastParent=currLine;
 	}
-
-	
+}
+void use_bool_option(char c, char x, int opt) {
+	if (c==x) {gOptions&=~opt;}
+	else if (c==(x+'A'-'a')) {gOptions|=opt;}
+}
+void parse_opts(int argc, const char* argv[]){
+	int	i;	
+	for (i=1; i<argc; i++) {
+		const char* s=argv[i];char c;
+		if (*s++=='-') {
+			while (c=*s++) {
+				use_bool_option(c,'c',OPT_CLICKABLE);
+				use_bool_option(c,'f',OPT_SHOW_FILENAME);
+				use_bool_option(c,'s',OPT_SINGLE_LINE);
+				if (c=='h') {
+					{
+						printf("%s",help);
+						exit(0);
+					}
+				}
+			}
+		}
+	}
 }
 
 enum {MAX_LINE_SIZE=4096,MAX_FILENAME=1024};
 int main(int argc, const char* argv[]) {
 
+	parse_opts(argc,argv);
 	int totalRead=0;
 	FILE* fsrc=stdin; FILE* fdst=stdout;
 	char *line=(char*)0;
 	size_t sz=0,read=0;
-	if (argc!=1) {
-		printf("%s",help);
-		return 0;
-	}
 	int*	lineParents=0;
 	int*	currFileLineDepth=0;
 	char currFilename[MAX_FILENAME]="";
@@ -351,8 +399,16 @@ int main(int argc, const char* argv[]) {
 		// Emit bracedepth, if we have a valid file..
 		if (numLines && lineIndex>=0) {
 //			currDepth=emit_depth_change_lines2(fdst,currDepth,currFilename,lineIndex,currFileLines,currFileLineDepth,lineParents,lastEmitedLine);
-			emit_parent_lines(fdst,currFileLines,lineParents,lineIndex,lineIndex,currFilename,&lastParent);
-			fprintf(fdst,"%s:%d:\t%s\n",currFilename,visLineIndex(lineIndex),currFileLines[lineIndex]);
+			if (gOptions & OPT_SHOW_FILENAME && (gOptions&OPT_SINGLE_LINE)) {
+				fprintf(fdst,"%s:%d:\t",currFilename,visLineIndex(lineIndex));
+			}
+			//on single line, make it display context from root
+			if (gOptions & OPT_SINGLE_LINE) lastParent=-1;	
+			emit_parent_lines(fdst,currFileLines,lineParents,lineIndex,lineIndex,currFilename,
+				&lastParent);
+			if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
+				fprintf(fdst,"%s:%d:\t",currFilename,visLineIndex(lineIndex));
+			fprintf(fdst,"%s\n",currFileLines[lineIndex]);
 		}
 		else
 			fprintf(fdst,"%s\n",line);
