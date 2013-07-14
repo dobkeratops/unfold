@@ -1,0 +1,15 @@
+if [ -z "$RUST_SRC" ]; then
+	echo "Rust Grep helper "
+	export RUST_SRC as standard rust source tree to search
+fi	
+if [ ! "$1" ]; then
+	echo "Rust Grep helper "
+	echo "useage rg <search text> [unfold opts]"
+	echo "searches for whole word following fn/struct/fn/trait/impl/type, and unfolds results"
+	echo "optionally provide more options to unfold eg -Su singleline output"
+	echo "searches *.rs in current location and $RUST_SRC recursively"
+else
+	echo "grep for definition $1 in $(pwd),$RUST_SRC.."
+	grep -rn "\(trait\|struct\|fn\|impl\|type\)\s*$1[^a-zA-Z0-9_]" $RUST_SRC --include "*.rs" | unfold $2
+fi
+

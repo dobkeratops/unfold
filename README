@@ -31,3 +31,10 @@ orange.rs:66:   impl fruit::Citrus for Orange {   fn foo()
 
 
 
+misc helpers in scripts 
+  rg               -wrapper for grep/unfold for rust defintions
+  functions.py     -replacement for gedit external tools that provides GEDIT_CURRENT_SYMBOL, 
+  find_rust_def    -gedit external tools script for gedit using unfold
+
+
+

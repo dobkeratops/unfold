@@ -12,4 +12,5 @@ valgrind:
 	g++ unfold.c -o unfold -g -O0 -DDEBUG
 
 install: unfold
+	chmod +x scripts/*
 	cp unfold /usr/local/bin

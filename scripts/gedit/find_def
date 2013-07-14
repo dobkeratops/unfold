@@ -1,0 +1,21 @@
+#!/bin/sh
+#search for selected text or symbol under cursor (needs patch for functions.py)
+search=$GEDIT_SELECTED_TEXT
+if [ -z $search ]
+then
+	search=$GEDIT_CURRENT_SYMBOL
+fi
+
+P=$GEDIT_CURRENT_DOCUMENT_DIR
+
+if [ -z $search ]
+then
+  echo "no symbol to search for"
+	exit
+fi
+echo "grep defs of: $search (fn|trait|struct|type|class|typedef|auto)"
+
+// Find 
+grep -rn --include "*.rs" --include "*.h" --include "*.cpp"  --include "*.c"  "\(class\|fn\|type\|trait\|struct\|auto\)\\s*$search[^a-zA-Z0-9_]" $GEDIT_CURRENT_DOCUMENT_DIR $RUST_SRC  |unfold -Scu
+
+

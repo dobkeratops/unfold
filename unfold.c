@@ -442,10 +442,15 @@ void emit_unfolding(FILE* fdst, char**currFileLines, int* parentLines,int numLin
 	int	 surroundingParent=(beginIndex>=0 && parentLines && beginIndex<numLines)?parentLines[beginIndex]:-1;
 
 	// dont unfold something that is a statement (prototype?, call?) - only something that opens a block
-	if (beginIndex>=0 && endIndex>beginIndex && beginIndex<numLines)
-		if (str_contains_char(currFileLines[beginIndex],';'))
-			return;
+	// or that is a single-line block
 
+	if (beginIndex>=0 && endIndex>beginIndex && beginIndex<numLines)
+	{
+		const char* s=	currFileLines[beginIndex];
+		if (str_contains_char(s,';') ||
+			str_contains_char(s,'{') && get_depth_change(s)==0)
+			return;
+	}
 	//if (!(gOptions & OPT_UNFOLD)) return;
 	// Needed to handle non k&r brace style
 			
