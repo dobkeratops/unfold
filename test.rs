@@ -17,8 +17,13 @@ mod foo {
 		}
 	}
 	mod more {
-		mod nested
+		struct FooStruct 
 		{
+			r
+			g
+			b
+		}
+		mod nestedSomething{
 			fn bar {
 				yada1
 				yada2

@@ -19,10 +19,11 @@ enum Opts
 	OPT_UNFOLD		=	0x0002,
 	OPT_UNFOLD_ENCLOSING		=	0x0004,
 	OPT_SINGLE_LINE	=	0x0008,
-	OPT_SHOW_FILENAME		=	0x0010
+	OPT_SHOW_FILENAME		=	0x0010,
+	OPT_UNFOLD_ABOVE		=	0x0020
 };
 
-int	gOptions=OPT_SHOW_FILENAME;
+int	gOptions=OPT_SHOW_FILENAME|OPT_UNFOLD_ABOVE;
 
 const char* help=
 "unfold\n"
@@ -53,11 +54,19 @@ const char* help=
 "-S/-s\tdo/dont place all context information on the same line (for further grep?)\n"
 "-U/-u\tdo/dont unfold below found lines (default,no), eg display found class contents..\n"
 "-E/-e\tdo/dont unfold enclosing context of lines (default,no)\n"
+"-A/-a\tdo/dont unfold all enclosing blocks above lines (default,yes)\n"
 "\n"
-"eg \n"
+"examples \n"
 "grep -rn \"fn\\s*baz\" . --include *.c | unfold -cS\n"
 "./test.rs:4:	mod foo {	trait bar {		fn baz {  ....yada ...}\n"
 "./test.rs:16:	mod foo {	impl bar for Yada 	{		fn baz}\n"
+"\n"
+"grep -rn \"struct\\s*Whatever\" . --include *.c | unfold -Ua\n"
+"./test.rs:2:	struct Whatever {\n"
+"./test.rs:3:	   x\n"
+"./test.rs:4:	   y\n"
+"./test.rs:5:	   z\n"
+"./test.rs:6:	}\n"
 
 
 "\n";
@@ -257,6 +266,16 @@ bool str_contains_char(const char* src, const char x){
 	while (c=*s++) { if  (c==x) return true; }
 	return false;
 }
+int get_depth_change(const char* src) {
+	//TODO: should preprocess file to ignore braces in strings/comments
+	char c;
+	int depthChange=0;
+	while (c=*src++) {
+		if (c=='{') depthChange++;
+		if (c=='}') depthChange--;
+	}
+	return depthChange;
+}
 
 bool str_contains_char_of(const char* src,const char* xs) {
 	const char* s=src; char c;
@@ -324,8 +343,8 @@ void emit_stuff_before_brace(FILE* dst, const char* filename, int currLine, char
 
 
 
-int emit_parent_lines(FILE* dst, char**lines, int* lineParents,int currLine,int srcLine, const char*filename,int *lastParent) {
-
+void emit_parent_lines(FILE* dst, char**lines, int* lineParents,int currLine,int srcLine, const char*filename,int *lastParent) {
+	if (!(gOptions & OPT_UNFOLD_ABOVE)) return;
 //	dbprintf("%d->%d\n",currLine,lineParents[currLine]);
 	if (lineParents[currLine]>=0 && lineParents[currLine]!=currLine) {
 		emit_parent_lines(dst,lines,lineParents,lineParents[currLine],srcLine,filename,lastParent);
@@ -352,6 +371,7 @@ void parse_opts(int argc, const char* argv[]){
 				use_bool_option(c,'s',OPT_SINGLE_LINE);
 				use_bool_option(c,'u',OPT_UNFOLD);
 				use_bool_option(c,'e',OPT_UNFOLD_ENCLOSING);
+				use_bool_option(c,'a',OPT_UNFOLD_ABOVE);
 				if (c=='h') {
 					{
 						printf("%s",help);
@@ -362,22 +382,39 @@ void parse_opts(int argc, const char* argv[]){
 		}
 	}
 }
-// show unfolded lines of the line of interest, within a range
-void emit_unfolding(FILE* fdst, char**currFileLines, int* parentLines,int beginIndex,int endIndex, const char* filename) {
-	int	i;
-	int	 surroundingParent=(beginIndex>=0 && parentLines)?parentLines[beginIndex]:-1;
-	//if (!(gOptions & OPT_UNFOLD)) return;
-	int begin=(beginIndex>=0)?(beginIndex+1):0;
-	for (i=begin; i<endIndex; i++) {		
-		if (((parentLines[i]==beginIndex &&beginIndex>=0) && (gOptions & OPT_UNFOLD)) ||	// unfold below hit
-			(parentLines[i]==surroundingParent && (gOptions & OPT_UNFOLD_ENCLOSING))//unfold all above hit
-			) 
-		{
+void show_line(FILE* fdst,const char* filename, char** currFileLines, int i) { 
 			char sep = (gOptions & OPT_CLICKABLE)?':':'-';
 			if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
 				fprintf(fdst,"%s%c%d%c\t",filename,sep,visLineIndex(i),sep);
 			fprintf(fdst,"%s\n",currFileLines[i]);
+}
+
+// show unfolded lines of the line of interest, within a range
+void emit_unfolding(FILE* fdst, char**currFileLines, int* parentLines,int beginIndex,int endIndex, const char* filename) {
+	int	i;
+	//dbprintf("emit-unfolding %d-%d\n",beginIndex+1,endIndex+1);
+	int	 surroundingParent=(beginIndex>=0 && parentLines)?parentLines[beginIndex]:-1;
+	//if (!(gOptions & OPT_UNFOLD)) return;
+	// Needed to handle non k&r brace style
+	while (beginIndex<(endIndex-1) && beginIndex>=0) {
+		int dd=get_depth_change(currFileLines[beginIndex]);
+		if (dd<0) break;
+		if (dd>0) break;
+		beginIndex++;
+		if (gOptions & OPT_UNFOLD) {
+			show_line(fdst,filename,currFileLines,beginIndex);
 		}
+	};
+	int begin=(beginIndex>=0)?(beginIndex+1):0;
+	for (i=begin; i<endIndex; i++) {		
+		
+		if (((parentLines[i]==beginIndex &&beginIndex>=0) && (gOptions & OPT_UNFOLD)) ||	// unfold below hit
+			(parentLines[i]==surroundingParent && (gOptions & OPT_UNFOLD_ENCLOSING))//unfold all above hit
+			) 
+		{
+			show_line(fdst,filename,currFileLines,i);
+		}
+		//else dbprintf("[%d]parent[%d]\n",i+1,parentLines[i]+1);
 	}
 }
 enum {MAX_LINE_SIZE=4096,MAX_FILENAME=1024};
