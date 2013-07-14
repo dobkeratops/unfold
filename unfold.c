@@ -16,9 +16,10 @@
 enum Opts 
 {
 	OPT_CLICKABLE			=	0x0001,
-	OPT_CLOSE_BRACES		=	0x0002,
-	OPT_SINGLE_LINE	=	0x0004,
-	OPT_SHOW_FILENAME		=	0x0008
+	OPT_UNFOLD		=	0x0002,
+	OPT_UNFOLD_ENCLOSING		=	0x0004,
+	OPT_SINGLE_LINE	=	0x0008,
+	OPT_SHOW_FILENAME		=	0x0010
 };
 
 int	gOptions=OPT_SHOW_FILENAME;
@@ -50,6 +51,8 @@ const char* help=
 "-B/-b\tdo/dont emit clickable links for the brace context(default,no)\n"
 "-N/-n\tdo/dont emit filenames(default-yes)\n"
 "-S/-s\tdo/dont place all context information on the same line (for further grep?)\n"
+"-U/-u\tdo/dont unfold below found lines (default,no), eg display found class contents..\n"
+"-E/-e\tdo/dont unfold enclosing context of lines (default,no)\n"
 "\n"
 "eg \n"
 "grep -rn \"fn\\s*baz\" . --include *.c | unfold -cS\n"
@@ -347,6 +350,8 @@ void parse_opts(int argc, const char* argv[]){
 				use_bool_option(c,'c',OPT_CLICKABLE);
 				use_bool_option(c,'f',OPT_SHOW_FILENAME);
 				use_bool_option(c,'s',OPT_SINGLE_LINE);
+				use_bool_option(c,'u',OPT_UNFOLD);
+				use_bool_option(c,'e',OPT_UNFOLD_ENCLOSING);
 				if (c=='h') {
 					{
 						printf("%s",help);
@@ -357,7 +362,24 @@ void parse_opts(int argc, const char* argv[]){
 		}
 	}
 }
-
+// show unfolded lines of the line of interest, within a range
+void emit_unfolding(FILE* fdst, char**currFileLines, int* parentLines,int beginIndex,int endIndex, const char* filename) {
+	int	i;
+	int	 surroundingParent=(beginIndex>=0 && parentLines)?parentLines[beginIndex]:-1;
+	//if (!(gOptions & OPT_UNFOLD)) return;
+	int begin=(beginIndex>=0)?(beginIndex+1):0;
+	for (i=begin; i<endIndex; i++) {		
+		if (((parentLines[i]==beginIndex &&beginIndex>=0) && (gOptions & OPT_UNFOLD)) ||	// unfold below hit
+			(parentLines[i]==surroundingParent && (gOptions & OPT_UNFOLD_ENCLOSING))//unfold all above hit
+			) 
+		{
+			char sep = (gOptions & OPT_CLICKABLE)?':':'-';
+			if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
+				fprintf(fdst,"%s%c%d%c\t",filename,sep,visLineIndex(i),sep);
+			fprintf(fdst,"%s\n",currFileLines[i]);
+		}
+	}
+}
 enum {MAX_LINE_SIZE=4096,MAX_FILENAME=1024};
 int main(int argc, const char* argv[]) {
 
@@ -373,7 +395,7 @@ int main(int argc, const char* argv[]) {
 	char**	currFileLines=0;
 	int	numLines=0;
 	int	currDepth=0;
-	int lastEmitedLine=0;
+	int lastEmittedLine=0;
 	int	lastParent=-1;
 	while(-1!=(read=getline(&line,&sz,fsrc))) {
 		//output_brace_context(fdst,line);
@@ -381,9 +403,10 @@ int main(int argc, const char* argv[]) {
 		int lineIndex=get_filename_and_line(refFilename,sizeof(refFilename), line)-1;
 		// Change current file if we need to
 		if (strcmp(refFilename,currFilename)) {
+			emit_unfolding(fdst,currFileLines,lineParents,lastEmittedLine,numLines,currFilename);	// finish up
 			lastParent=-1;
 			currDepth=0;
-			lastEmitedLine=0;
+			lastEmittedLine=-1;
 			strcpy(currFilename,refFilename);
 			dbprintf("New File: %s\n",currFilename);
 			int sz=read_file(&currFile, currFilename);
@@ -396,9 +419,11 @@ int main(int argc, const char* argv[]) {
 			}
 //			output_lines(fdst,currFileLines,numLines);
 		}
+		// Emit unfolding of previous until here
+		emit_unfolding(fdst,currFileLines,lineParents,lastEmittedLine,lineIndex,currFilename);
 		// Emit bracedepth, if we have a valid file..
 		if (numLines && lineIndex>=0) {
-//			currDepth=emit_depth_change_lines2(fdst,currDepth,currFilename,lineIndex,currFileLines,currFileLineDepth,lineParents,lastEmitedLine);
+//			currDepth=emit_depth_change_lines2(fdst,currDepth,currFilename,lineIndex,currFileLines,currFileLineDepth,lineParents,lastEmittedLine);
 			if (gOptions & OPT_SHOW_FILENAME && (gOptions&OPT_SINGLE_LINE)) {
 				fprintf(fdst,"%s:%d:\t",currFilename,visLineIndex(lineIndex));
 			}
@@ -412,9 +437,10 @@ int main(int argc, const char* argv[]) {
 		}
 		else
 			fprintf(fdst,"%s\n",line);
-		lastEmitedLine=lineIndex;
+		lastEmittedLine=lineIndex;
 		totalRead+=read;
 	}
+	emit_unfolding(fdst,currFileLines,lineParents,lastEmittedLine,numLines,currFilename);	// finish up
 	SAFE_FREE(currFileLineDepth);
 	SAFE_FREE(currFile);
 	SAFE_FREE(currFileLines);
