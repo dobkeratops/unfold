@@ -20,10 +20,27 @@ enum Opts
 	OPT_UNFOLD_ENCLOSING		=	0x0004,
 	OPT_SINGLE_LINE	=	0x0008,
 	OPT_SHOW_FILENAME		=	0x0010,
-	OPT_UNFOLD_ABOVE		=	0x0020
+	OPT_UNFOLD_ABOVE		=	0x0020,
+	OPT_COLOR_CODING		=	0x0040
 };
 
-int	gOptions=OPT_SHOW_FILENAME|OPT_UNFOLD_ABOVE;
+int	gOptions=OPT_SHOW_FILENAME|OPT_UNFOLD_ABOVE|OPT_COLOR_CODING|OPT_UNFOLD;
+
+
+enum Color {
+	COLOR_DEFAULT,
+	COLOR_BOLD_RED,
+	COLOR_PURPLE,
+	COLOR_GREY,
+};
+const char* g_Colors[]={
+	"\x1b[0m",
+	"\x1b[31;1m",
+	"\x1b[35m",
+	"\x1b[37m",
+};
+const char* getColor(int color) { return (gOptions&OPT_COLOR_CODING)?g_Colors[color]:"";}
+
 
 const char* help=
 "unfold\n"
@@ -50,12 +67,13 @@ const char* help=
 "another.rs:130:            fn foo();\n"
 "\n"
 "Options:-\n"
-"-B/-b\tdo/dont emit clickable links for the brace context(default,no)\n"
+"-K/-k\tdo/dont emit clickable links for the brace context(default,no)\n"
 "-N/-n\tdo/dont emit filenames(default-yes)\n"
 "-S/-s\tdo/dont place all context information on the same line (for further grep?)\n"
-"-U/-u\tdo/dont unfold below found lines (default,no), eg display class contents..\n"
+"-U/-u\tdo/dont unfold below found lines (default,yes), eg display class contents..\n"
 "-E/-e\tdo/dont unfold enclosing context of lines (default,no)\n"
 "-A/-a\tdo/dont unfold all enclosing blocks above lines (default,yes)\n"
+"-C/-c\tdo/dont color code output (default,yes)\n"
 "\n"
 "Examples:- \n"
 "grep -rn \"fn\\s*baz\" . --include *.c | unfold -cS\n"
@@ -333,9 +351,9 @@ void emit_stuff_before_brace(FILE* dst, const char* filename, int currLine, char
 		int visIndex=visLineIndex(currLine);
 		char sep = (gOptions & OPT_CLICKABLE)?':':'-';
 		if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE)) {
-			fprintf(dst,"%s%c%d%c\t",filename,sep,visLineIndex(currLine),sep);
+			fprintf(dst,"%s%s%c%d%c%s\t",getColor(COLOR_PURPLE),filename,sep,visLineIndex(currLine),sep,getColor(COLOR_DEFAULT));
 		}
-		fprintf(dst,"%s",lines[currLine]);
+		fprintf(dst,"%s%s%s",getColor(COLOR_GREY),lines[currLine],getColor(COLOR_DEFAULT));
 		if (!(gOptions & OPT_SINGLE_LINE)) {
 			fprintf(dst,"\n",lines[currLine]);
 		}
@@ -367,12 +385,13 @@ void parse_opts(int argc, const char* argv[]){
 		const char* s=argv[i];char c;
 		if (*s++=='-') {
 			while (c=*s++) {
-				use_bool_option(c,'c',OPT_CLICKABLE);
+				use_bool_option(c,'k',OPT_CLICKABLE);
 				use_bool_option(c,'f',OPT_SHOW_FILENAME);
 				use_bool_option(c,'s',OPT_SINGLE_LINE);
 				use_bool_option(c,'u',OPT_UNFOLD);
 				use_bool_option(c,'e',OPT_UNFOLD_ENCLOSING);
 				use_bool_option(c,'a',OPT_UNFOLD_ABOVE);
+				use_bool_option(c,'c',OPT_COLOR_CODING);
 				if (c=='h') {
 					{
 						printf("%s",help);
@@ -386,7 +405,7 @@ void parse_opts(int argc, const char* argv[]){
 void show_line(FILE* fdst,const char* filename, char** currFileLines, int i) { 
 			char sep = (gOptions & OPT_CLICKABLE)?':':'-';
 			if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
-				fprintf(fdst,"%s%c%d%c\t",filename,sep,visLineIndex(i),sep);
+				fprintf(fdst,"%s%s%c%d%c%s\t",getColor(COLOR_PURPLE),filename,sep,visLineIndex(i),sep,getColor(COLOR_DEFAULT));
 			fprintf(fdst,"%s\n",currFileLines[i]);
 }
 
@@ -435,6 +454,7 @@ int main(int argc, const char* argv[]) {
 	int	currDepth=0;
 	int lastEmittedLine=0;
 	int	lastParent=-1;
+
 	while(-1!=(read=getline(&line,&sz,fsrc))) {
 		//output_brace_context(fdst,line);
 		char refFilename[MAX_FILENAME];
@@ -463,15 +483,15 @@ int main(int argc, const char* argv[]) {
 		if (numLines && lineIndex>=0) {
 //			currDepth=emit_depth_change_lines2(fdst,currDepth,currFilename,lineIndex,currFileLines,currFileLineDepth,lineParents,lastEmittedLine);
 			if (gOptions & OPT_SHOW_FILENAME && (gOptions&OPT_SINGLE_LINE)) {
-				fprintf(fdst,"%s:%d:\t",currFilename,visLineIndex(lineIndex));
+				fprintf(fdst,"%s%s:%d:%s\t",getColor(COLOR_PURPLE),currFilename,visLineIndex(lineIndex),getColor(COLOR_DEFAULT));
 			}
 			//on single line, make it display context from root
 			if (gOptions & OPT_SINGLE_LINE) lastParent=-1;	
 			emit_parent_lines(fdst,currFileLines,lineParents,lineIndex,lineIndex,currFilename,
 				&lastParent);
 			if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
-				fprintf(fdst,"%s:%d:\t",currFilename,visLineIndex(lineIndex));
-			fprintf(fdst,"%s\n",currFileLines[lineIndex]);
+				fprintf(fdst,"%s%s:%d:%s\t",getColor(COLOR_PURPLE),currFilename,visLineIndex(lineIndex),getColor(COLOR_DEFAULT));
+			fprintf(fdst,"%s%s%s\n",getColor(COLOR_BOLD_RED),currFileLines[lineIndex],getColor(COLOR_DEFAULT));
 		}
 		else
 			fprintf(fdst,"%s\n",line);
