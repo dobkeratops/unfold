@@ -18,7 +18,7 @@ another.rs:38-     mod fruit {
 another.rs:68-         trait Citrus {
 another.rs:130:            fn foo();
 
-grep -rn "struct\s*Whatever" . --include "*.rs" |unfold -U
+grep -rn "struct\s*Whatever" . --include "*.h" |unfold -U
 blah.c:40   struct Whatever {
 blah.c:41      float x;
 blah.c:42      float y;
