@@ -18,14 +18,16 @@ another.rs:38-     mod fruit {
 another.rs:68-         trait Citrus {
 another.rs:130:            fn foo();
 
-grep -rn "struct\s*Whatever" . --include "*.h" |unfold -U
+grep -rn "struct\s*Whatever" . --include "*.h" |unfold -Ua
 blah.c:40   struct Whatever {
 blah.c:41      float x;
 blah.c:42      float y;
 blah.c:43   }
 
-grep -rn "fn\s*foo" . --include "*.rs" |unfold -S
+grep -rn "fn\s*foo" . --include "*.rs" |unfold -Su
 another.rs:130:   mod fruit {    trait Citrus {   fn foo()
+banana.rs:30:   impl fruit::Citrus for Banana {   fn foo()
+orange.rs:66:   impl fruit::Citrus for Orange {   fn foo()
 
 
 
