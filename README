@@ -3,18 +3,29 @@ unfold
 Display enclosing brace context of grep search results for c-like languages
 e.g. to display enclosing classes, traits.. for search results
 eases searching through deeply nested source from the commandline
+unfold -h for help
 
 requires filenames and line numbers emitted by grep; works from stdin->stdout
 
-example useage:
+Examples:-
 grep -rn "fn\s*foo" . --include "*.rs" |unfold
 
 output of grep:-
-another.rs:130:        fn foo();
 another.rs:130:        fn foo();
 
 output of unfold:-
 another.rs:38-     mod fruit {
 another.rs:68-         trait Citrus {
 another.rs:130:            fn foo();
+
+grep -rn "struct\s*Whatever" . --include "*.rs" |unfold -U
+blah.c:40   struct Whatever {
+blah.c:41      float x;
+blah.c:42      float y;
+blah.c:43   }
+
+grep -rn "fn\s*foo" . --include "*.rs" |unfold -S
+another.rs:130:   mod fruit {    trait Citrus {   fn foo()
+
+
 
