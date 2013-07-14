@@ -422,11 +422,16 @@ void parse_opts(int argc, const char* argv[]){
 		}
 	}
 }
-void show_line(FILE* fdst,const char* filename, char** currFileLines, int i) { 
-			char sep = (gOptions & OPT_CLICKABLE)?':':'-';
-			if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
-				fprintf(fdst,"%s%s%c%d%c%s\t",getColor(COLOR_PURPLE),filename,sep,visLineIndex(i),sep,getColor(COLOR_DEFAULT));
-			fprintf(fdst,"%s\n",currFileLines[i]);
+
+void fprint_file_pos(FILE* fdst,const char* filename,int i,int click) {
+	char sep = ((gOptions & OPT_CLICKABLE) || click)?':':'-';
+	fprintf(fdst,"%s%s%c%d%c%s\t",getColor(COLOR_PURPLE),filename,sep,visLineIndex(i),sep,getColor(COLOR_DEFAULT));
+}
+
+void fprint_line(FILE* fdst,const char* filename, char** currFileLines, int i) { 
+	if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
+		fprint_file_pos(fdst,filename,i,0);
+	fprintf(fdst,"%s\n",currFileLines[i]);
 }
 
 // show unfolded lines of the line of interest, within a range
@@ -450,7 +455,7 @@ void emit_unfolding(FILE* fdst, char**currFileLines, int* parentLines,int numLin
 		if (dd>0) break;
 		beginIndex++;
 		if (gOptions & OPT_UNFOLD) {
-			show_line(fdst,filename,currFileLines,beginIndex);
+			fprint_line(fdst,filename,currFileLines,beginIndex);
 		}
 	};
 	int begin=(beginIndex>=0)?(beginIndex+1):0;
@@ -460,7 +465,7 @@ void emit_unfolding(FILE* fdst, char**currFileLines, int* parentLines,int numLin
 			(parentLines[i]==surroundingParent && (gOptions & OPT_UNFOLD_ENCLOSING))//unfold all above hit
 			) 
 		{
-			show_line(fdst,filename,currFileLines,i);
+			fprint_line(fdst,filename,currFileLines,i);
 		}
 		//else dbprintf("[%d]parent[%d]\n",i+1,parentLines[i]+1);
 	}
@@ -513,14 +518,15 @@ int main(int argc, const char* argv[]) {
 		if (numLines && lineIndex>=0) {
 //			currDepth=emit_depth_change_lines2(fdst,currDepth,currFilename,lineIndex,currFileLines,currFileLineDepth,lineParents,lastEmittedLine);
 			if (gOptions & OPT_SHOW_FILENAME && (gOptions&OPT_SINGLE_LINE)) {
-				fprintf(fdst,"%s%s:%d:%s\t",getColor(COLOR_PURPLE),currFilename,visLineIndex(lineIndex),getColor(COLOR_DEFAULT));
+				fprint_file_pos(fdst,currFilename,lineIndex,1);
 			}
 			//on single line, make it display context from root
 			if (gOptions & OPT_SINGLE_LINE) lastParent=-1;	
 			emit_parent_lines(fdst,currFileLines,lineParents,numLines, lineIndex,lineIndex,currFilename,
 				&lastParent);
 			if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
-				fprintf(fdst,"%s%s:%d:%s\t",getColor(COLOR_PURPLE),currFilename,visLineIndex(lineIndex),getColor(COLOR_DEFAULT));
+				fprint_file_pos(fdst,currFilename,lineIndex,1);
+//				fprintf(fdst,"%s%s:%d:%s\t",getColor(COLOR_PURPLE),currFilename,visLineIndex(lineIndex),getColor(COLOR_DEFAULT));
 			fprintf(fdst,"%s%s%s\n",getColor(COLOR_BOLD_RED),currFileLines[lineIndex],getColor(COLOR_DEFAULT));
 		}
 		else
