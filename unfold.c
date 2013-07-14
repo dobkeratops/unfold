@@ -2,11 +2,19 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define dbprintf(...) 
-//#define dbprintf printf
+#ifdef DEBUG2
+	#define dbprintf printf
+#else
+	#define dbprintf(...) 
+#endif
+
 #define MALLOCS(TYPE,NUM) ((TYPE*)malloc(sizeof(TYPE)*NUM))
-#define SAFE_FREE(ptr) { if (ptr) free((void*)ptr); ptr=NULL; }
-#define ASSERT(COND)
+#define SAFE_FREE(ptr) { if (ptr) {free((void*)ptr); ptr=NULL;} }
+#if defined(DEBUG) || defined(DEBUG2)
+	#define ASSERT(COND) if (!(COND)) {printf("%s:%s:%d error:-\n %s",__FILE__,__FUNCTION__,__LINE__,#COND);exit (0);}
+#else
+	#define ASSERT(C)
+#endif
 #define REALLOCS(PTR,NEWNUM) \
 	/*dbprintf("Realloc %x[%d] %s:%d",(size_t)(PTR),(int)(NEWNUM),__FILE__,__LINE__);*/\
 	PTR=(typeof(PTR)) realloc((void*)(PTR),sizeof(*PTR)*(NEWNUM));
@@ -92,15 +100,16 @@ const char* help=
 
 
 
-size_t read_file(char** ppOutput,const char* filename) {
+size_t read_file_as_c_str(char** ppOutput,const char* filename) {
 	SAFE_FREE(*ppOutput);
 	FILE* fp = fopen(filename,"rb");
 	if (!fp) return 0;
 	size_t sz = (fseek(fp,0,SEEK_END),ftell(fp)); fseek(fp,0,SEEK_SET);
-	*ppOutput=(char*) malloc(sz);
+	*ppOutput=(char*) malloc(sz+1);
 	fread(*ppOutput, sz,1, fp);
+	(*ppOutput)[sz]=0;
 	fclose(fp);
-	return sz;
+	return sz+1;
 }
 int	count_lines(const char* txt) {
 	int	num=0;
@@ -121,13 +130,22 @@ void output_lines(FILE* out,char** lines,int num) {
 	}
 }
 
-void split_lines(char*** pppLines, int* pNumLines,char* text) {
+void split_lines(char*** pppLines, int* pNumLines,char* text,size_t textSize) {
+	ASSERT(textSize>0)
+	if (!text) {
+		SAFE_FREE(*pppLines);
+		*pNumLines=0;
+		return;
+	}
 	char *src=text;
 	int numLines=count_lines(text);
 	REALLOCS(*pppLines,numLines);
 
 	int	lineOut=0;
+	
 	while (*src && (lineOut<numLines))  {
+		ASSERT((src-text)<textSize);
+		ASSERT(lineOut<numLines);
 		//dbprintf("line%d/%d\n", lineOut,numLines);
 		char c;
 		(*pppLines)[lineOut++]=src;
@@ -138,7 +156,7 @@ void split_lines(char*** pppLines, int* pNumLines,char* text) {
 			}
 		}
 	}
-	//dbprintf("numLines=%d lineOut=%d",numLines,lineOut);
+	ASSERT(numLines==lineOut);
 	if (pNumLines) *pNumLines=numLines;
 }
 
@@ -174,18 +192,18 @@ int	get_filename_and_line(char* filename, int maxlen,const char* line) {
 
 void calc_line_brace_depth(int** lineDepth,  char** lines,int numLines, const char* filename) 
 {
-	int	lineIndex;
-	char c;
+//	int	lineIndex;
 	int	depth=0;
 	REALLOCS(*lineDepth,numLines);
 	bool string=false;	
 	bool inSingleQuotedStr=false;
-	bool comment;
-	for (lineIndex=0; lineIndex<numLines; lineIndex++) {
+	bool comment=false;
+	for (int lineIndex=0; lineIndex<numLines; lineIndex++) {
 		const char* src=lines[lineIndex],*s2=src;
 		(*lineDepth)[lineIndex]=depth;
 		inSingleQuotedStr=false;	//can't span lines..
 		int numSingleQuotesOnLine=0;
+		char c=0;
 		while (c=*s2++) {if (c=='\'') numSingleQuotesOnLine++; }
 //		bool ignoreSingleQuotes=numSingleQuotesOnLine&1; 
 		if (src[0]!='#') 
@@ -243,6 +261,7 @@ void calc_parent_line(int** lineParent, int* lineDepth, int numLines) {
 			parent[currDepth++] = p;
 			p=i-1;
 		} else if (lineDepth[i]<currDepth){
+			ASSERT(currDepth>0);
 			p=parent[--currDepth];
 		}
 		(*lineParent)[i]=p;
@@ -362,11 +381,12 @@ void emit_stuff_before_brace(FILE* dst, const char* filename, int currLine, char
 
 
 
-void emit_parent_lines(FILE* dst, char**lines, int* lineParents,int currLine,int srcLine, const char*filename,int *lastParent) {
+void emit_parent_lines(FILE* dst, char**lines, int* lineParents,int numLines, int currLine,int srcLine, const char*filename,int *lastParent) {
 	if (!(gOptions & OPT_UNFOLD_ABOVE)) return;
 //	dbprintf("%d->%d\n",currLine,lineParents[currLine]);
+	ASSERT(currLine<numLines && currLine>=0);
 	if (lineParents[currLine]>=0 && lineParents[currLine]!=currLine) {
-		emit_parent_lines(dst,lines,lineParents,lineParents[currLine],srcLine,filename,lastParent);
+		emit_parent_lines(dst,lines,lineParents,numLines,lineParents[currLine],srcLine,filename,lastParent);
 //	fprintf(dst,"%s-%d-%s\n",filename,visLineIndex(currLine),lines[currLine]);
 	}
 	if (currLine!=srcLine && currLine>*lastParent) {
@@ -410,20 +430,21 @@ void show_line(FILE* fdst,const char* filename, char** currFileLines, int i) {
 }
 
 // show unfolded lines of the line of interest, within a range
-void emit_unfolding(FILE* fdst, char**currFileLines, int* parentLines,int beginIndex,int endIndex, const char* filename) {
+void emit_unfolding(FILE* fdst, char**currFileLines, int* parentLines,int numLines, int beginIndex,int endIndex, const char* filename) {
+	ASSERT(endIndex<=numLines)
 	int	i;
 	//dbprintf("emit-unfolding %d-%d\n",beginIndex+1,endIndex+1);
-	int	 surroundingParent=(beginIndex>=0 && parentLines)?parentLines[beginIndex]:-1;
+	int	 surroundingParent=(beginIndex>=0 && parentLines && beginIndex<numLines)?parentLines[beginIndex]:-1;
 
 	// dont unfold something that is a statement (prototype?, call?) - only something that opens a block
-	if (beginIndex>=0 && endIndex>beginIndex)
+	if (beginIndex>=0 && endIndex>beginIndex && beginIndex<numLines)
 		if (str_contains_char(currFileLines[beginIndex],';'))
 			return;
 
 	//if (!(gOptions & OPT_UNFOLD)) return;
 	// Needed to handle non k&r brace style
 			
-	while (beginIndex<(endIndex-1) && beginIndex>=0) {
+	while (beginIndex<(endIndex-1) && beginIndex>=0 && beginIndex<numLines) {
 		int dd=get_depth_change(currFileLines[beginIndex]);
 		if (dd<0) break;
 		if (dd>0) break;
@@ -464,28 +485,30 @@ int main(int argc, const char* argv[]) {
 
 	while(-1!=(read=getline(&line,&sz,fsrc))) {
 		//output_brace_context(fdst,line);
-		char refFilename[MAX_FILENAME];
+		char refFilename[MAX_FILENAME]="";
 		int lineIndex=get_filename_and_line(refFilename,sizeof(refFilename), line)-1;
 		// Change current file if we need to
 		if (strcmp(refFilename,currFilename)) {
-			emit_unfolding(fdst,currFileLines,lineParents,lastEmittedLine,numLines,currFilename);	// finish up
+			emit_unfolding(fdst,currFileLines,lineParents,numLines,lastEmittedLine,numLines,currFilename);	// finish up
 			lastParent=-1;
 			currDepth=0;
 			lastEmittedLine=-1;
 			strcpy(currFilename,refFilename);
 			dbprintf("New File: %s\n",currFilename);
-			int sz=read_file(&currFile, currFilename);
+			int sz=read_file_as_c_str(&currFile, currFilename);
 			if (sz) {
-				split_lines(&currFileLines,&numLines,currFile);
+				split_lines(&currFileLines,&numLines,currFile,sz);
 				calc_line_brace_depth	(&currFileLineDepth,currFileLines,numLines,currFilename);
 				calc_parent_line(&lineParents,currFileLineDepth,numLines);
 			} else {
+				printf("could not read file %s\n",currFilename);
+				exit(0);
 				numLines=0;
 			}
 //			output_lines(fdst,currFileLines,numLines);
 		}
 		// Emit unfolding of previous until here
-		emit_unfolding(fdst,currFileLines,lineParents,lastEmittedLine,lineIndex,currFilename);
+		emit_unfolding(fdst,currFileLines,lineParents,numLines,lastEmittedLine,lineIndex,currFilename);
 		// Emit bracedepth, if we have a valid file..
 		if (numLines && lineIndex>=0) {
 //			currDepth=emit_depth_change_lines2(fdst,currDepth,currFilename,lineIndex,currFileLines,currFileLineDepth,lineParents,lastEmittedLine);
@@ -494,7 +517,7 @@ int main(int argc, const char* argv[]) {
 			}
 			//on single line, make it display context from root
 			if (gOptions & OPT_SINGLE_LINE) lastParent=-1;	
-			emit_parent_lines(fdst,currFileLines,lineParents,lineIndex,lineIndex,currFilename,
+			emit_parent_lines(fdst,currFileLines,lineParents,numLines, lineIndex,lineIndex,currFilename,
 				&lastParent);
 			if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
 				fprintf(fdst,"%s%s:%d:%s\t",getColor(COLOR_PURPLE),currFilename,visLineIndex(lineIndex),getColor(COLOR_DEFAULT));
@@ -505,7 +528,7 @@ int main(int argc, const char* argv[]) {
 		lastEmittedLine=lineIndex;
 		totalRead+=read;
 	}
-	emit_unfolding(fdst,currFileLines,lineParents,lastEmittedLine,numLines,currFilename);	// finish up
+	emit_unfolding(fdst,currFileLines,lineParents,numLines, lastEmittedLine,numLines,currFilename);	// finish up
 	SAFE_FREE(currFileLineDepth);
 	SAFE_FREE(currFile);
 	SAFE_FREE(currFileLines);
