@@ -76,11 +76,11 @@ const char* help=
 "-C/-c\tdo/dont color code output (default,yes)\n"
 "\n"
 "Examples:- \n"
-"grep -rn \"fn\\s*baz\" . --include *.c | unfold -cS\n"
+"grep -rn \"fn\\s*baz\" . --include *.c | unfold -Su\n"
 "./test.rs:4:	mod foo {	trait bar {		fn baz {  ....yada ...}\n"
 "./test.rs:16:	mod foo {	impl bar for Yada 	{		fn baz}\n"
 "\n"
-"grep -rn \"struct\\s*Whatever\" . --include *.c | unfold -Ua\n"
+"grep -rn \"struct\\s*Whatever\" . --include *.c | unfold -Uaf\n"
 "./test.rs:2:	struct Whatever {\n"
 "./test.rs:3:	   x\n"
 "./test.rs:4:	   y\n"
@@ -414,8 +414,15 @@ void emit_unfolding(FILE* fdst, char**currFileLines, int* parentLines,int beginI
 	int	i;
 	//dbprintf("emit-unfolding %d-%d\n",beginIndex+1,endIndex+1);
 	int	 surroundingParent=(beginIndex>=0 && parentLines)?parentLines[beginIndex]:-1;
+
+	// dont unfold something that is a statement (prototype?, call?) - only something that opens a block
+	if (beginIndex>=0 && endIndex>beginIndex)
+		if (str_contains_char(currFileLines[beginIndex],';'))
+			return;
+
 	//if (!(gOptions & OPT_UNFOLD)) return;
 	// Needed to handle non k&r brace style
+			
 	while (beginIndex<(endIndex-1) && beginIndex>=0) {
 		int dd=get_depth_change(currFileLines[beginIndex]);
 		if (dd<0) break;
