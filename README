@@ -1,8 +1,9 @@
 unfold
 
 Display enclosing brace context of grep search results for c-like languages
-e.g. to display enclosing classes, traits.. for search results
-eases searching through deeply nested source from the commandline
+e.g. to display enclosing classes, traits.. for search results.
+motivation was to improve code searches from the command line.
+
 unfold -h for help
 
 requires filenames and line numbers emitted by grep; works from stdin->stdout
@@ -19,10 +20,10 @@ another.rs:68-         trait Citrus {
 another.rs:130:            fn foo();
 
 grep -rn "struct\s*Whatever" . --include "*.h" |unfold -Ua
-blah.c:40   struct Whatever {
-blah.c:41      float x;
-blah.c:42      float y;
-blah.c:43   }
+blah.h:40   struct Whatever {
+blah.h:41      float x;
+blah.h:42      float y;
+blah.h:43   }
 
 grep -rn "fn\s*foo" . --include "*.rs" |unfold -Su
 another.rs:130:   mod fruit {    trait Citrus {   fn foo()
@@ -32,9 +33,10 @@ orange.rs:66:   impl fruit::Citrus for Orange {   fn foo()
 
 
 misc helpers in scripts 
-  rg               -wrapper for grep/unfold for rust defintions
-  functions.py     -replacement for gedit external tools that provides GEDIT_CURRENT_SYMBOL, 
-  find_rust_def    -gedit external tools script for gedit using unfold
+  rg                  -wrapper for grep/unfold for rust defintions
+  gedit/functions.py  -replacement for gedit external tools that provides GEDIT_CURRENT_SYMBOL, 
+  gedit/find_def      -gedit external tools script for gedit using unfold, 
+                      -in conjunction with the above gives
 
 
 
