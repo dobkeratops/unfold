@@ -29,7 +29,8 @@ enum Opts
 	OPT_SINGLE_LINE	=	0x0008,
 	OPT_SHOW_FILENAME		=	0x0010,
 	OPT_UNFOLD_ABOVE		=	0x0020,
-	OPT_COLOR_CODING		=	0x0040
+	OPT_COLOR_CODING		=	0x0040,
+	OPT_SHOW_FILENAME_ALL		=	0x0080
 };
 
 int	gOptions=OPT_SHOW_FILENAME|OPT_UNFOLD_ABOVE|OPT_COLOR_CODING|OPT_UNFOLD;
@@ -369,7 +370,9 @@ void emit_stuff_before_brace(FILE* dst, const char* filename, int currLine, char
 	for(; currLine<=lastLine; currLine++) {
 		int visIndex=visLineIndex(currLine);
 		char sep = (gOptions & OPT_CLICKABLE)?':':'-';
-		if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE)) {
+		if ((gOptions & OPT_SHOW_FILENAME_ALL) && !(gOptions&OPT_SINGLE_LINE))
+			/*(gOptions & OPT_SHOW_FILENAME_ALL)*/ 
+		{
 			fprintf(dst,"%s%s%c%d%c%s\t",getColor(COLOR_PURPLE),filename,sep,visLineIndex(currLine),sep,getColor(COLOR_DEFAULT));
 		}
 		fprintf(dst,"%s%s%s",getColor(COLOR_GREY),lines[currLine],getColor(COLOR_DEFAULT));
@@ -395,9 +398,9 @@ void emit_parent_lines(FILE* dst, char**lines, int* lineParents,int numLines, in
 		*lastParent=currLine;
 	}
 }
-void use_bool_option(char c, char x, int opt) {
+void use_bool_option(char c, char x, int opt,int alt_opt) {
 	if (c==x) {gOptions&=~opt;}
-	else if (c==(x+'A'-'a')) {gOptions|=opt;}
+	else if (c==(x+'A'-'a')) {gOptions|=(alt_opt)?alt_opt:opt;}
 }
 void parse_opts(int argc, const char* argv[]){
 	int	i;	
@@ -405,13 +408,13 @@ void parse_opts(int argc, const char* argv[]){
 		const char* s=argv[i];char c;
 		if (*s++=='-') {
 			while (c=*s++) {
-				use_bool_option(c,'k',OPT_CLICKABLE);
-				use_bool_option(c,'f',OPT_SHOW_FILENAME);
-				use_bool_option(c,'s',OPT_SINGLE_LINE);
-				use_bool_option(c,'u',OPT_UNFOLD);
-				use_bool_option(c,'e',OPT_UNFOLD_ENCLOSING);
-				use_bool_option(c,'a',OPT_UNFOLD_ABOVE);
-				use_bool_option(c,'c',OPT_COLOR_CODING);
+				use_bool_option(c,'k',OPT_CLICKABLE,0);
+				use_bool_option(c,'f',OPT_SHOW_FILENAME,OPT_SHOW_FILENAME_ALL);
+				use_bool_option(c,'s',OPT_SINGLE_LINE,0);
+				use_bool_option(c,'u',OPT_UNFOLD,0);
+				use_bool_option(c,'e',OPT_UNFOLD_ENCLOSING,0);
+				use_bool_option(c,'a',OPT_UNFOLD_ABOVE,0);
+				use_bool_option(c,'c',OPT_COLOR_CODING,0);
 				if (c=='h') {
 					{
 						printf("%s",help);
@@ -429,7 +432,7 @@ void fprint_file_pos(FILE* fdst,const char* filename,int i,int click) {
 }
 
 void fprint_line(FILE* fdst,const char* filename, char** currFileLines, int i) { 
-	if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
+	if ((gOptions & OPT_SHOW_FILENAME_ALL) && !(gOptions&OPT_SINGLE_LINE))
 		fprint_file_pos(fdst,filename,i,0);
 	fprintf(fdst,"%s\n",currFileLines[i]);
 }
@@ -522,14 +525,19 @@ int main(int argc, const char* argv[]) {
 		// Emit bracedepth, if we have a valid file..
 		if (numLines && lineIndex>=0) {
 //			currDepth=emit_depth_change_lines2(fdst,currDepth,currFilename,lineIndex,currFileLines,currFileLineDepth,lineParents,lastEmittedLine);
-			if (gOptions & OPT_SHOW_FILENAME && (gOptions&OPT_SINGLE_LINE)) {
+			if (((gOptions & OPT_SHOW_FILENAME_ALL) && (gOptions&OPT_SINGLE_LINE)) ||
+				(gOptions & OPT_SHOW_FILENAME)) 
+			{
+				// show preceeding filename
 				fprint_file_pos(fdst,currFilename,lineIndex,1);
+				if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
+					fprintf(fdst,"\n");
 			}
 			//on single line, make it display context from root
 			if (gOptions & OPT_SINGLE_LINE) lastParent=-1;	
 			emit_parent_lines(fdst,currFileLines,lineParents,numLines, lineIndex,lineIndex,currFilename,
 				&lastParent);
-			if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
+			if ((gOptions & OPT_SHOW_FILENAME_ALL) && !(gOptions&OPT_SINGLE_LINE))
 				fprint_file_pos(fdst,currFilename,lineIndex,1);
 //				fprintf(fdst,"%s%s:%d:%s\t",getColor(COLOR_PURPLE),currFilename,visLineIndex(lineIndex),getColor(COLOR_DEFAULT));
 			fprintf(fdst,"%s%s%s\n",getColor(COLOR_BOLD_RED),currFileLines[lineIndex],getColor(COLOR_DEFAULT));
