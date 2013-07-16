@@ -16,6 +16,6 @@ fi
 echo "grep defs of: $search (fn|trait|struct|type|class|typedef|auto)"
 
 // Find 
-grep -rn --include "*.rs" --include "*.h" --include "*.cpp"  --include "*.c"  "\(class\|fn\|type\|trait\|struct\|auto\)\\s*$search[^a-zA-Z0-9_]" $GEDIT_CURRENT_DOCUMENT_DIR $RUST_SRC  |unfold -Scu
+grep -rn --include "*.rs" --include "*.h" --include "*.cpp"  --include "*.c"  "\(class\|fn\|type\|trait\|struct\|enum\|auto\)\\s*$search[^a-zA-Z0-9_]" $GEDIT_CURRENT_DOCUMENT_DIR $RUST_SRC  |unfold -Scu
 
 
