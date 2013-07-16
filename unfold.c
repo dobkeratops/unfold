@@ -528,7 +528,9 @@ int main(int argc, const char* argv[]) {
 			if (((gOptions & OPT_SHOW_FILENAME_ALL) && (gOptions&OPT_SINGLE_LINE)) ||
 				(gOptions & OPT_SHOW_FILENAME)) 
 			{
-				// show preceeding filename
+				// show preceeding filename, with extra space if its the only one
+				if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
+					fprintf(fdst,"\n");
 				fprint_file_pos(fdst,currFilename,lineIndex,1);
 				if (gOptions & OPT_SHOW_FILENAME && !(gOptions&OPT_SINGLE_LINE))
 					fprintf(fdst,"\n");
