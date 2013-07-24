@@ -12,20 +12,24 @@ Examples:-
 grep -rn "fn\s*foo" . --include "*.rs" |unfold
 
 output of grep:-
-another.rs:130:        fn foo();
+another.rs:130:        fn foo() {
 
 output of unfold:-
-another.rs:38-     mod fruit {
-another.rs:68-         trait Citrus {
-another.rs:130:            fn foo();
 
-grep -rn "struct\s*Whatever" . --include "*.h" |unfold -Ua
+another.rs:130-
+mod fruit {
+    trait Citrus {
+        fn foo() {
+
+grep -rn "struct\s*Whatever" . --include "*.h" |unfold -UaF
+
 blah.h:40   struct Whatever {
 blah.h:41      float x;
 blah.h:42      float y;
 blah.h:43   }
 
 grep -rn "fn\s*foo" . --include "*.rs" |unfold -Su
+
 another.rs:130:   mod fruit {    trait Citrus {   fn foo()
 banana.rs:30:   impl fruit::Citrus for Banana {   fn foo()
 orange.rs:66:   impl fruit::Citrus for Orange {   fn foo()

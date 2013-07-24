@@ -10,6 +10,8 @@ if [ ! "$1" ]; then
 	echo "searches *.rs in current location and $RUST_SRC recursively"
 else
 	echo "grep for definition $1 in $(pwd),$RUST_SRC.."
-	grep -rn "\(trait\|struct\|fn\|impl\|type\|enum\)\s*$1[^a-zA-Z0-9_]" $RUST_SRC --include "*.rs" | unfold $2
+	if !( grep -rn "\(trait\|struct\|fn\|impl\|type\|enum\|macro_rules!\)\s*$1[^a-zA-Z0-9_]" . $RUST_SRC --include "*.rs" | unfold $2 );then
+             grep -rn "\s$1\s*[,\n=(\{]" . $RUST_SRC --include "*.rs"
+        fi
 fi
 

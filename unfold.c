@@ -21,6 +21,8 @@
 
 #define MAX_DEPTH 256
 
+int gLinesOut=0;
+#define EMIT(...) {gLinesOut++; fprintf(__VA_ARGS__);}
 enum Opts 
 {
 	OPT_CLICKABLE			=	0x0001,
@@ -77,7 +79,7 @@ const char* help=
 "\n"
 "Options:-\n"
 "-K/-k\tdo/dont emit clickable links for the brace context(default,no)\n"
-"-N/-n\tdo/dont emit filenames(default-yes)\n"
+"-F/-f\tdo/dont emit filenames(default-yes)\n"
 "-S/-s\tdo/dont place all context information on the same line (for further grep?)\n"
 "-U/-u\tdo/dont unfold below found lines (default,yes), eg display class contents..\n"
 "-E/-e\tdo/dont unfold enclosing context of lines (default,no)\n"
@@ -276,7 +278,7 @@ int emit_depth_change_lines(FILE* dst,int currDepth, char* filename,int currLine
 	int	newDepth=depthOfLine[currLine];
 	int tmpDepth=newDepth;
 	if (currDepth!=newDepth) {
-		fprintf(dst,"depth change %d->%d\n",currDepth,newDepth);
+		EMIT(dst,"depth change %d->%d\n",currDepth,newDepth);
 	}
 	while(currDepth<tmpDepth) {
 		int output[MAX_DEPTH];
@@ -375,9 +377,9 @@ void emit_stuff_before_brace(FILE* dst, const char* filename, int currLine, char
 		{
 			fprintf(dst,"%s%s%c%d%c%s\t",getColor(COLOR_PURPLE),filename,sep,visLineIndex(currLine),sep,getColor(COLOR_DEFAULT));
 		}
-		fprintf(dst,"%s%s%s",getColor(COLOR_GREY),lines[currLine],getColor(COLOR_DEFAULT));
+		EMIT(dst,"%s%s%s",getColor(COLOR_GREY),lines[currLine],getColor(COLOR_DEFAULT));
 		if (!(gOptions & OPT_SINGLE_LINE)) {
-			fprintf(dst,"\n",lines[currLine]);
+			EMIT(dst,"\n",lines[currLine]);
 		}
 	}
 }
@@ -428,13 +430,13 @@ void parse_opts(int argc, const char* argv[]){
 
 void fprint_file_pos(FILE* fdst,const char* filename,int i,int click) {
 	char sep = ((gOptions & OPT_CLICKABLE) || click)?':':'-';
-	fprintf(fdst,"%s%s%c%d%c%s\t",getColor(COLOR_PURPLE),filename,sep,visLineIndex(i),sep,getColor(COLOR_DEFAULT));
+	EMIT(fdst,"%s%s%c%d%c%s\t",getColor(COLOR_PURPLE),filename,sep,visLineIndex(i),sep,getColor(COLOR_DEFAULT));
 }
 
 void fprint_line(FILE* fdst,const char* filename, char** currFileLines, int i) { 
 	if ((gOptions & OPT_SHOW_FILENAME_ALL) && !(gOptions&OPT_SINGLE_LINE))
 		fprint_file_pos(fdst,filename,i,0);
-	fprintf(fdst,"%s\n",currFileLines[i]);
+	EMIT(fdst,"%s\n",currFileLines[i]);
 }
 
 // show unfolded lines of the line of interest, within a range
@@ -515,7 +517,7 @@ int main(int argc, const char* argv[]) {
 				calc_parent_line(&lineParents,currFileLineDepth,numLines);
 			} else {
 				printf("could not read file %s\n",currFilename);
-				exit(0);
+				exit(1);
 				numLines=0;
 			}
 //			output_lines(fdst,currFileLines,numLines);
@@ -542,10 +544,10 @@ int main(int argc, const char* argv[]) {
 			if ((gOptions & OPT_SHOW_FILENAME_ALL) && !(gOptions&OPT_SINGLE_LINE))
 				fprint_file_pos(fdst,currFilename,lineIndex,1);
 //				fprintf(fdst,"%s%s:%d:%s\t",getColor(COLOR_PURPLE),currFilename,visLineIndex(lineIndex),getColor(COLOR_DEFAULT));
-			fprintf(fdst,"%s%s%s\n",getColor(COLOR_BOLD_RED),currFileLines[lineIndex],getColor(COLOR_DEFAULT));
+			EMIT(fdst,"%s%s%s\n",getColor(COLOR_BOLD_RED),currFileLines[lineIndex],getColor(COLOR_DEFAULT));
 		}
 		else
-			fprintf(fdst,"%s\n",line);
+			EMIT(fdst,"%s\n",line);
 		lastEmittedLine=lineIndex;
 		totalRead+=read;
 	}
@@ -555,7 +557,7 @@ int main(int argc, const char* argv[]) {
 	SAFE_FREE(currFileLines);
 	SAFE_FREE(lineParents);
 	if (line) free(line);
-	return	0;
+	exit(gLinesOut>0?0:1);
 }
 
 
