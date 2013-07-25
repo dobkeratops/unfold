@@ -41,6 +41,6 @@ misc helpers in scripts
   gedit/functions.py  -replacement for gedit external tools that provides GEDIT_CURRENT_SYMBOL, 
   gedit/find_def      -gedit external tools script for gedit using unfold, 
                       -in conjunction with the above gives
-
+  rust.lang           -improved syntax highlighting for gedit
 
 

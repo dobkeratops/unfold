@@ -23,3 +23,7 @@ valgrind:
 install: unfold
 	chmod +x scripts/*
 	cp unfold /usr/local/bin
+
+install-gedit:
+	cp scripts/rust.lang ~/.local/share/gtksourceview-3.0/language-specs/rust.lang
+
