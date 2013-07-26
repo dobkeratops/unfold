@@ -25,13 +25,17 @@
     <style id="attribute" _name="Attribute" map-to="def:preprocessor"/>
     <style id="operator"          _name="Operator"              map-to="def:keyword"/>
     <style id="op"          _name="Ops"              map-to="xml:cdata-delim"/>
-    <style id="delimiter"          _name="Delimeter"              map-to="def:constant"/>
+    <style id="delimiter"          _name="Delimeter"              map-to="xml:attribute-name"/>
     <style id="blockdef"          _name="blockdef"              map-to="def:special-char"/>
-    <style id="typeparams"          _name="TypeParams"              map-to="xml:attribute-name"/>
+    <style id="typeparams"          _name="TypeParams"              map-to="def:type"/>
     <style id="typedecl"          _name="TypeDecl"              map-to="xml:attribute-name"/>
-    <style id="typeref"          _name="TypeRef"              map-to="xml:attribute-name"/>
-    <style id="tuple2"          _name="tuple2"              map-to="xml:attribute-name"/>
+    <style id="typeref"          _name="TypeRef"              map-to="def:type"/>
+    <style id="tuple2"          _name="tuple2"              map-to="def:type"/>
+    <style id="struct-init"          _name="StructInit"              map-to="xml:type"/>
     <style id="definition"          _name="Definition"              map-to="def:statement"/>
+    <style id="stdlib"          _name="StdLib"              map-to="def:constant"/>
+    <style id="gl"          _name="GL"              map-to="xml:attribute-name"/>
+    <style id="vec_math"          _name="VecMath"              map-to="xml:attribute-name"/>
  </styles>
 
   <definitions>
@@ -46,6 +50,7 @@
 	<context id="type" style-ref="keyword">
 		<keyword>type</keyword>
 	</context>
+
 
 	<context id="keywords" style-ref="keyword">
 		<keyword>as</keyword>
@@ -81,13 +86,6 @@
 		<keyword>unsafe</keyword>
 		<keyword>use</keyword>
 		<keyword>while</keyword>
-		<keyword>each</keyword>
-		<keyword>map</keyword>
-		<keyword>filter</keyword>
-		<keyword>fold</keyword>
-		<keyword>transform</keyword>
-		<keyword>iter</keyword>
-		<keyword>collect</keyword>
 	</context>
 
 	<context id="types" style-ref="type">
@@ -143,6 +141,59 @@
 		<keyword>pid_t</keyword>
 		<keyword>mode_t</keyword>
 		<keyword>ssize_t</keyword>
+	</context>
+
+	<context id="gl" style-ref="gl">
+		<match>\bgl\w*|GL_\w*</match>
+	</context>
+	<context id="vec_math" style-ref="vec_math">
+		<match>\bvec\w*|\bVec\w*|\bvec3_\w*|\bv3\w*|\bv4\w*|\bv2\w*vf\w*|\bmatrix\w*|\bMatrix\w*|\bmat|\bMat</match>
+	</context>
+
+	<context id="stdlib" style-ref="stdlib">
+		<!-- todo: automate this! -->
+		<keyword>map</keyword>
+		<keyword>to_str</keyword>
+		<keyword>fold</keyword>
+		<keyword>filter</keyword>
+		<keyword>foldl</keyword>
+		<keyword>foldr</keyword>
+		<keyword>println</keyword>
+		<keyword>print</keyword>
+		<keyword>spawn</keyword>
+		<keyword>times</keyword>
+		<keyword>forever</keyword>
+		<keyword></keyword>
+		<keyword>iter</keyword>
+		<keyword>collect</keyword>
+		<keyword>each</keyword>
+		<keyword>flat_map</keyword>
+		<keyword>as_str</keyword>
+		<keyword>assert!</keyword>
+		<keyword>verify!</keyword>
+		<keyword>debug!</keyword>
+		<keyword>dump!</keyword>
+		<keyword>advance</keyword>
+		<keyword>new</keyword>
+		<keyword>advance</keyword>
+		<keyword>max_by</keyword>
+		<keyword>min_by</keyword>
+		<keyword>contains</keyword>
+		<keyword>slice</keyword>
+		<keyword>head</keyword>
+		<keyword>first</keyword>
+		<keyword>last</keyword>
+		<keyword>rev_iter</keyword>
+		<keyword>filter_mapped</keyword>
+		<keyword>min_by</keyword>
+		<keyword>reverse</keyword>
+		<keyword>append</keyword>
+		<keyword>reserve</keyword>
+		<keyword>capacity</keyword>
+		<keyword>grow</keyword>
+		<keyword>push</keyword>
+		<keyword>pop</keyword>
+		<keyword>partition</keyword>
 	</context>
 
 	<context id="self" style-ref="identifier">
@@ -292,7 +343,7 @@
 	  <match extended="true">&lt;[^\(\)]*&gt;</match>
 	</context>
 	<context id="definition" style-ref="definition">
-	  <match extended="true">(enum|fn|struct|trait|impl)\s*\w*</match>
+	  <match extended="true">\b(enum|fn|struct|trait|impl)\s+\w+</match>
 	</context>
 	<context id="typeref" style-ref="typeref">
 	  <match extended="true">:\s*[^,\{\}\;\=\)\(]*</match>
@@ -327,7 +378,7 @@
 		\.
 		</match>		
 	</context>
-	<context id="blockdef" class="blockdef">
+	<context id="blockdef" style-ref="blockdef">
 		<match extended="true">
 			\|\w\||
 			\|&amp;\w\||
@@ -337,17 +388,25 @@
 		</match>
 	</context>
 
+	<context id="struct-init" style-ref="struct-init">
+      <start>\w*\s*\{</start>
+	  <end>\}</end>
+      <include>
+       <context ref="rust"/>
+      </include>
+	</context>
+
 	<context id="rust" class="no-spell-check">
 	  <include>
+	    <context ref="definition"/>
+	    <context ref="keywords"/>
 	    <context ref="line-comment"/>
 	    <context ref="block-comment"/>
 	    <context ref="tuple2"/>
 	    <context ref="type"/>
 	    <context ref="delimiter"/>
 	    <context ref="op"/>
-	    <context ref="definition"/>
 	    <context ref="function"/>
-	    <context ref="keywords"/>
 	    <context ref="types"/>
 	    <context ref="ctypes"/>
 	    <context ref="self"/>
@@ -361,6 +420,9 @@
 	    <context ref="attribute"/>
 	    <context ref="typeref"/>
 	    <context ref="typeparams"/>
+	    <context ref="stdlib"/>
+	    <context ref="gl"/>
+	    <context ref="vec_math"/>
 	  </include>
 	</context>
   </definitions>
