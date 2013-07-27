@@ -21,21 +21,21 @@
     <style id="constant" _name="Constant" map-to="def:constant"/>
     <style id="identifier" _name="Identifier" map-to="def:identifier"/>
     <style id="number" _name="Number" map-to="def:number"/>
-    <style id="scope" _name="Scope" map-to="def:preprocessor"/>
+    <style id="scope" _name="Scope" map-to="def:scope"/>
     <style id="attribute" _name="Attribute" map-to="def:preprocessor"/>
     <style id="operator"          _name="Operator"              map-to="def:keyword"/>
-    <style id="op"          _name="Ops"              map-to="xml:cdata-delim"/>
-    <style id="delimiter"          _name="Delimeter"              map-to="xml:attribute-name"/>
+    <style id="op"          _name="Ops"              map-to="def:operator"/>
+    <style id="delimiter"          _name="Delimeter"              map-to="def:delimiter"/>
     <style id="blockdef"          _name="blockdef"              map-to="def:special-char"/>
-    <style id="typeparams"          _name="TypeParams"              map-to="def:type"/>
+    <style id="typeparams"          _name="TypeParams"              map-to="def:typeparam"/>
     <style id="typedecl"          _name="TypeDecl"              map-to="xml:attribute-name"/>
     <style id="typeref"          _name="TypeRef"              map-to="def:type"/>
     <style id="tuple2"          _name="tuple2"              map-to="def:type"/>
     <style id="struct-init"          _name="StructInit"              map-to="xml:type"/>
-    <style id="definition"          _name="Definition"              map-to="def:statement"/>
-    <style id="stdlib"          _name="StdLib"              map-to="def:constant"/>
-    <style id="gl"          _name="GL"              map-to="xml:attribute-name"/>
-    <style id="vec_math"          _name="VecMath"              map-to="xml:attribute-name"/>
+    <style id="definition"          _name="Definition"              map-to="def:definition"/>
+    <style id="stdlib"          _name="StdLib"              map-to="def:stdfunction"/>
+    <style id="gl"          _name="GL"              map-to="def:stdfunction"/>
+    <style id="vec_math"          _name="VecMath"              map-to="def:stdfunction"/>
  </styles>
 
   <definitions>
@@ -147,7 +147,7 @@
 		<match>\bgl\w*|GL_\w*</match>
 	</context>
 	<context id="vec_math" style-ref="vec_math">
-		<match>\bvec\w*|\bVec\w*|\bvec3_\w*|\bv3\w*|\bv4\w*|\bv2\w*vf\w*|\bmatrix\w*|\bMatrix\w*|\bmat|\bMat</match>
+		<match>\bvec[A-Z0-9]\w*|\bVec[A-Z0-9]\w*|\bv[0-4]f[A-Z]\w*|\bmatrix\w*|\bMatrix\w*|\bmat[_A-Z0-9]\w*|\bMat[A-Z0-9_]\w*</match>
 	</context>
 
 	<context id="stdlib" style-ref="stdlib">
@@ -180,6 +180,7 @@
 		<keyword>min_by</keyword>
 		<keyword>contains</keyword>
 		<keyword>slice</keyword>
+		<keyword>len</keyword>
 		<keyword>head</keyword>
 		<keyword>first</keyword>
 		<keyword>last</keyword>
