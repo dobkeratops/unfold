@@ -57,7 +57,7 @@
   <color name="aluminium6"                  value="#2e3436"/>
 
   <!-- Global Settings -->
-  <style name="text"                        foreground="#e8f0ff" background="aluminium6"/>
+  <style name="text"                        foreground="#ffffff" background="aluminium6"/>
   <style name="selection"                   foreground="aluminium1" background="aluminium4"/>
   <style name="cursor"                      foreground="aluminium2"/>
   <style name="current-line"                background="aluminium5"/>
@@ -80,7 +80,7 @@
   <style name="def:doc-comment-element"     italic="true"/>
 
   <!-- Constants -->
-  <style name="def:constant"                foreground="butter2"/>
+  <style name="def:constant"                foreground="#ffd060"/>
   <style name="def:string"                  foreground="butter2"/>
   <style name="def:special-char"            foreground="orange3"/>
   <style name="def:special-constant"        foreground="orange3"/>
@@ -91,6 +91,12 @@
 
   <style name="def:function"                use-style="def:identifier"/>
   <style name="def:stdfunction"              foreground="#fff0d0"/>
+  <style name="def:strfunction"              foreground="#ffe0e0"/>
+  <style name="def:iofunction"              foreground="#ffffd0"/>
+  <style name="def:glfunction"              foreground="#d0ffff"/>
+  <style name="def:vecfunction"              foreground="#f0ffe0"/>
+  <style name="def:gtkfunction"              foreground="#e0f0ff"/>
+  <style name="def:qtfunction"              foreground="#e0f0ff"/>
   <style name="def:delimiter"                foreground="#ffb0f0"/>
   <style name="def:definition"               bold="true" foreground="#80c0ff"/>
   <style name="def:fn_def"               bold="true" foreground="#ffffff"/>
@@ -104,7 +110,7 @@
   <style name="def:scope"                foreground="#d0d0c0"/>
   <style name="def:statement"               bold="true"/>
   <style name="def:keyword"               bold="true" foreground="#d0c0c0"/>
-  <style name="def:typeparam"                    foreground=#60f0f0 /> 
+  <style name="def:typeparam"                    foreground="#60f0f0" /> 
 
 
   <!-- Statements -->

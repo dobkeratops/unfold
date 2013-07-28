@@ -64,7 +64,7 @@
 
   <!-- Types -->
   <style name="def:type"                    foreground="dark-blue"/>
-  <style name="def:typeparam"                    foreground="#004080"/>
+  <style name="def:typeparam"                    foreground="#008080"/>
 
   <!-- Constants -->
   <style name="def:constant"                foreground="dark-blue"/>
@@ -81,6 +81,13 @@
   <style name="def:identifier"              foreground="dark-blue"/>
   <style name="def:function"                use-style="def:identifier"/>
   <style name="def:stdfunction"              foreground="#600040"/>
+  <style name="def:strfunction"              foreground="#402000"/>
+  <style name="def:iofunction"              foreground="#004020"/>
+  <style name="def:glfunction"              foreground="#004040"/>
+  <style name="def:vecfunction"              foreground="#006040"/>
+  <style name="def:gtkfunction"              foreground="#004000"/>
+  <style name="def:qtfunction"              foreground="#004000"/>
+
   <style name="def:delimiter"                foreground="#800080"/>
   <style name="def:definition"               bold="true" foreground="#003040"/>
   <style name="def:static_def"               bold="true" foreground="#800000"/>
